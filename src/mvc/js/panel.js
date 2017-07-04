@@ -1,16 +1,20 @@
 // Javascript Document
-(function(){
+(() => {
   return {
-    data: function(){
-      var vm = this;
+    data(){
+      const vm = this;
       // Populates the group array with the users for each as item
-      $.each(vm.source.groups, function(i, v){
-        vm.source.groups[i].items = $.map($.grep(bbn.users, function(user){
+      $.each(vm.source.groups, (i, v) => {
+        vm.source.groups[i].items = $.map($.grep(bbn.users, (user) => {
           return user.active && (user.id_group === v.id);
-        }), function(user){
+        }), (user) => {
           user.id = user.value;
+          user.icon = 'fa fa-user';
           return user;
         });
+        if ( v.is_parent ){
+          vm.source.groups[i].icon = 'fa fa-users';
+        }
       });
       appui.tasks = $.extend({}, vm.source, {
         priority_colors: [
@@ -25,23 +29,23 @@
           '#284',
           '#063'
         ],
-        userName: function(id){
+        userName(id){
           return bbn.fn.get_field(bbn.users, "value", id, "text");
         },
-        userGroup: function(id){
+        userGroup(id){
           return bbn.fn.get_field(bbn.users, "value", id, "id_group");
         },
-        userAvatar: function(id){
-          var av = bbn.fn.get_field(bbn.users, "value", id, "avatar");
+        userAvatar(id){
+          const av = bbn.fn.get_field(bbn.users, "value", id, "avatar");
           return av ? av : bbn.var.defaultAvatar;
         },
-        userAvatarImg: function(id){
-          var av = appui.tasks.userAvatar(id),
-              name = appui.tasks.userName(id);
+        userAvatarImg(id){
+          const av = appui.tasks.userAvatar(id),
+                name = appui.tasks.userName(id);
           return '<span class="appui-avatar"><img src="' + av + '" alt="' + name + '" title="' + name + '"></span>';
         },
-        userFull: function(id){
-          var user = bbn.fn.get_row(bbn.users, "value", id);
+        userFull(id){
+          const user = bbn.fn.get_row(bbn.users, "value", id);
           return '<span class="appui-avatar"><img src="' + user.avatar + '" alt="' + user.text + '"> ' + user.text + '</span>';
         }
       });
@@ -49,18 +53,18 @@
     },
     methods: $.extend({}, bbn.fn, {
       // Function on the media links in the comments of the task main view
-      download_media: function(id){
+      download_media(id){
         if ( id ){
           bbn.fn.post_out(this.root + 'download/media/' + id);
         }
       },
       // Form creating a new task
-      formNew: function(v){
-        var vm = this;
-        bbn.fn.popup($("#tpl-task_form_new").html(), vm.lng.new_task, 800, 250, function(cont){
+      formNew(v){
+        const vm = this;
+        bbn.fn.popup($("#tpl-task_form_new").html(), vm.lng.new_task, 800, 250, (cont) => {
           $("input[name=title]", cont).val(v);
           vm.typeField(cont);
-          $("form").attr("action", vm.root + 'actions/task/insert').data("script", function(e, f){
+          $("form").attr("action", vm.root + 'actions/task/insert').data("script", (e, f) => {
             if ( e.success ){
               bbn.fn.closePopup();
               /** @todo Replace tabNav **/
@@ -73,38 +77,43 @@
         });
       },
       // The special field for the type of task (tree inside a dropdown)
-      typeField: function(container, info){
-        var vm = this,
-            ddTree = $("input[name=type]", container).kendoDropDownTreeView({
-              treeview: {
-                select: function(e){
-                  var dt = e.sender.dataItem(e.node);
-                  if ( dt ){
-                    ddTree.element.val(dt.id).change();
-                  }
-                },
-                dataTextField: "text",
-                dataValueField: "id",
-                dataSource: new kendo.data.HierarchicalDataSource({
-                  data: vm.categories,
-                  schema: {
-                    model: {
-                      id: "id",
-                      hasChildren: "is_parent",
-                      children: "items",
-                      fields: {
-                        text: {type: "string"},
-                        is_parent: {type: "bool"}
-                      }
-                    }
-                  }
-                })
+      typeField(container, info){
+        const vm = this;
+        return $("input[name=type]", container).kendoDropDownTreeView({
+          treeview: {
+            select: function(e){
+              var dt = e.sender.dataItem(e.node);
+              if ( dt ){
+                ddTree.element.val(dt.id).change();
               }
-            }).data("kendoDropDownTreeView");
-        return ddTree;
+            },
+            dataTextField: "text",
+            dataValueField: "id",
+            dataSource: new kendo.data.HierarchicalDataSource({
+              data: vm.categories,
+              schema: {
+                model: {
+                  id: "id",
+                  hasChildren: "is_parent",
+                  children: "items",
+                  fields: {
+                    text: {type: "string"},
+                    is_parent: {type: "bool"}
+                  }
+                }
+              }
+            })
+          }
+        }).data("kendoDropDownTreeView");
       }
-    })
-  }
+    }),
+    mounted(){
+      const vm = this;
+      vm.$nextTick(() => {
+        $(vm.$el).bbn('analyzeContent', true);
+      });
+    }
+  };
   return function(ele, data){
     //$(ele).closest(".k-content").css("padding", "0px");
 
@@ -551,7 +560,7 @@
                       bbn.fn.alert(bbn.tasks.lng.file_exists);
                       return false;
                     }
-                    else{
+                    else {
                       $(ele).bbn("redraw", true);
                     }
                   }

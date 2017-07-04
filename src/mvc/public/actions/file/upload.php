@@ -5,10 +5,9 @@
  **/
 
 /** @var $ctrl \bbn\mvc\controller */
-
-if ( isset($ctrl->files['file'], $ctrl->arguments[0]) &&
+if ( isset($ctrl->files['qqfile'], $ctrl->arguments[0]) &&
         \bbn\str::is_integer($ctrl->arguments[0]) ){
-  $f =& $ctrl->files['file'];
+  $f =& $ctrl->files['qqfile'];
   $path = BBN_USER_PATH.'tmp/'.$ctrl->arguments[0];
   $new = \bbn\str::encode_filename($f['name'], \bbn\str::file_ext($f['name']));
   $file = $path.'/'.$new;
@@ -44,17 +43,17 @@ if ( isset($ctrl->files['file'], $ctrl->arguments[0]) &&
         'size' => filesize($path.'/'.$f),
         'extension' => '.'.$ext
       ];
-      if ( in_array($ext, $images) ){
+      /*if ( in_array($ext, $images) ){
         // Creating thumbnails
         $res['imgs'] = [];
         $img = new \bbn\file\image($path.'/'.$f);
         if ( $img->test() && ($imgs = $img->thumbs($path)) ){
           array_push($res['imgs'], array_map(function($a) use($path){
-            return substr($a, strlen($path));
+            return substr($a, strlen($path)+1);
           }, $imgs));
         }
         $res['imgs']['length'] = count($res['imgs']);
-      }
+      }*/
       array_push($ctrl->obj->files, $res);
     }
   }

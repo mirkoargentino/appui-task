@@ -1,52 +1,79 @@
-(function(){
+(() => {
   return {
-    data: function(){
-      var vm = this;
-      return $.extend(vm.source, {
+    beforeMount(){
+      const vm = this;
+      bbn.vue.setComponentRule(vm.appui_tasks.root + 'components/', 'appui');
+      bbn.vue.addComponent('task/form/new_task');
+      bbn.vue.unsetComponentRule();
+    },
+    data(){
+      const vm = this;
+      bbn.fn.log("BEFOER CRASH", vm);
+      return $.extend({}, vm.source, {
         typeSelection: [{
-          text: vm.source.lng.mine,
+          text: bbn._('Mine'),
           value: 'user'
         }, {
-          text: vm.source.lng.my_groups,
+          text: bbn._('My groups'),
           value: 'group'
         }, {
-          text: vm.source.lng.all,
+          text: bbn._('All'),
           value: 'all'
         }],
         typeSelected: 'user',
         tableData: [],
-        taskTitle: ''
+        taskTitle: '',
+        appui_tasks: $.extend({}, bbn.vue.closest(bbn.vue.closest(vm, '.bbn-tabnav'), '.bbn-tab').$children[0].$data)
       });
     },
     methods: {
-      /*createTask: function(){
-        var $input = $("input[name=title]", ele),
-            v = $input.val();
-        if ( v.length ){
-          bbn.tasks.formNew(v);
-          $input.val("");
-          ds.read();
+      createTask(){
+        const vm = this;
+        if ( vm.taskTitle.length ){
+          vm.formNew();
         }
-      },*/
-      readTable: function(){
-        var vm = this;
-        bbn.fn.post(vm.root + 'treelist', {
+      },
+      formNew(){
+        const vm = this;
+        appui.popup({
+          title: bbn._('New task'),
+          width: 800,
+          height: 250,
+          component: 'appui-task-form-new_task',
+          source: {
+            appui_tasks: vm.appui_tasks,
+            taskTitle: vm.taskTitle
+          },
+          close(){
+            vm.taskTitle = '';
+            vm.readTable();
+          }
+        });
+      },
+      readTable(){
+        const vm = this;
+        bbn.fn.post(vm.root + 'list', {
           selection: vm.typeSelected,
           title: vm.taskTitle
-        }, function(d){
+        }, (d) => {
           vm.tableData = d.tasks || [];
         });
       },
-      renderUserAvatar: function(val, text, row){
-        return 'a';
+      renderUserAvatar(val, text, row){
+        /** @todo Render a bbn-component into column */
+        return '<bbn-initial :user-id="' + val + '"></bbn-initial>';
       },
-      renderState: function(val, text, row){
-        var vm = this,
-            icon,
+      renderPriority(val, text, row){
+        /** @todo  */
+        return '<div class="bbn-h-100" style="background-color: ' + this.appui_tasks.priority_colors[val] + '">' + val + '</div>';
+      },
+      renderState(val, text, row){
+        const vm = this;
+        let icon,
             color;
         if ( val === vm.appui_tasks.states.opened ){
           icon = 'clock-o';
-          color = 'white';
+          color = 'orange';
         }
         else if ( val === vm.appui_tasks.states.pending ){
           icon = 'clock-o';
@@ -66,35 +93,33 @@
         }
         return '<i class="bbn-lg fa fa-' + icon + '" style="color: ' + color + '" style="" title="' + bbn.fn.get_field(vm.appui_tasks.options.states, "value", val, "text") + '"> </i>';
       },
-      renderLast: function(val){
+      renderLast(val){
         bbn.fn.log('vallll', val);
-        /** @todo Fix it */
-        return moment(Date(val)).calendar();
+        return moment(val).calendar(null, {sameElse: 'DD/MM/YYYY'});
       },
-      renderRole: function(val){
+      renderRole(val){
         return bbn.fn.get_field(this.appui_tasks.options.roles, "value", val, "text") || '-';
       },
-      renderType: function(val){
+      renderType(val){
         return bbn.fn.get_field(this.appui_tasks.options.cats, "value", val, "text");
       },
-      renderDuration: function(val, text, row){
-        var start = moment(row.creation_date),
+      renderDuration(val, text, row){
+        let start = moment(row.creation_date),
             end = moment(row.last_action);
         if ( row.state === this.appui_tasks.states.closed ){
           end = moment();
         }
         return end.from(start, true);
       },
-      renderCreationDate: function(val){
-        /** @todo Fix it */
-        return moment(Date(val)).calendar();
+      renderCreationDate(val){
+        return moment(val).calendar(null, {sameElse: 'DD/MM/YYYY'});
       },
-      renderDeadline: function(val, text, row){
-        var t = moment(val),
+      renderDeadline(val, text, row){
+        let t = moment(val),
             now = moment(),
             diff = t.unix() - now.unix(),
             col = 'green',
-            d = row.state === this.appui_tasks.states.closed ? t.calendar() : t.fromNow();
+            d = row.state === this.appui_tasks.states.closed ? t.calendar(null, {sameElse: 'DD/MM/YYYY'}) : t.fromNow();
 
         if ( !t.isValid() ){
           return '-';
@@ -113,19 +138,27 @@
         }
         return '<strong style="color: ' + col + '">' + d + '</strong>';
       },
-      renderId: function(val){
-        return '<a href="' + this.root + 'tasks/' + val + '/main" title="' + this.appui_tasks.lng.see_task + '"><button class="k-button"><i class="fa fa-eye"> </i></button></a>';
+      renderId(val){
+        return '<a href="' + this.root + 'tasks/' + val + '/main" title="' + bbn._('See task') + '"><button class="k-button"><i class="fa fa-eye"></i></button></a>';
       }
     },
     watch: {
-      typeSelected: function(){
+      typeSelected(val){
         this.readTable();
+      },
+      taskTitle(val){
+        const vm = this;
+        if ( vm.titleTimeout ){
+          clearTimeout(vm.titleTimeout);
+        }
+        vm.titleTimeout = setTimeout(() => {
+          vm.readTable();
+        }, 500);
       }
     },
-    mounted: function(){
-      var vm = this;
-      vm.appui_tasks = $.extend({}, bbn.vue.closest(bbn.vue.closest(vm, '.bbn-tab'), '.bbn-tab').$children[0].$data);
-      vm.$nextTick(function(){
+    mounted(){
+      const vm = this;
+      vm.$nextTick(() => {
         vm.readTable();
       });
     }
